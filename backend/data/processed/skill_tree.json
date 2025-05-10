@@ -1,0 +1,57 @@
+{
+    "Data Analyst": {
+      "Numpy": {
+        "level": "Beginner",
+        "estimated_time": "3 days",
+        "courses": ["https://www.w3schools.com/python/numpy/default.asp"]
+      },
+      "Pandas": {
+        "level": "Intermediate",
+        "estimated_time": "1 week",
+        "courses": ["https://www.coursera.org/learn/data-analysis-with-pandas"]
+      },
+      "Data Cleaning": {
+        "level": "Intermediate",
+        "estimated_time": "4 days",
+        "courses": ["https://www.kaggle.com/learn/data-cleaning"]
+      },
+      "Data Wrangling": {
+        "level": "Advanced",
+        "estimated_time": "1.5 weeks",
+        "courses": ["https://www.udemy.com/course/data-wrangling/"]
+      },
+      "Matplotlib": {
+        "level": "Beginner",
+        "estimated_time": "2 days",
+        "courses": ["https://www.youtube.com/watch?v=3Xc3CA655Y4"]
+      }
+    },
+    "Data Scientist": {
+      "Scikit-learn": {
+        "level": "Intermediate",
+        "estimated_time": "1 week",
+        "courses": ["https://www.udemy.com/course/scikit-learn-tutorial/"]
+      },
+      "XGBoost": {
+        "level": "Advanced",
+        "estimated_time": "2 weeks",
+        "courses": ["https://xgboost.readthedocs.io/en/stable/tutorials/model.html"]
+      },
+      "Feature Engineering": {
+        "level": "Intermediate",
+        "estimated_time": "5 days",
+        "courses": ["https://www.coursera.org/learn/feature-engineering"]
+      },
+      "EDA": {
+        "level": "Intermediate",
+        "estimated_time": "3 days",
+        "courses": ["https://www.kaggle.com/learn/data-visualization"]
+      },
+      "TensorFlow": {
+        "level": "Advanced",
+        "estimated_time": "2 weeks",
+        "courses": ["https://www.tensorflow.org/tutorials"]
+      }
+    }
+  }
+  
