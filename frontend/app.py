@@ -1,73 +1,91 @@
 import streamlit as st
-import requests
+from pyresparser import ResumeParser
 import json
 import os
+import tempfile
 
-# # ---------------------- Config ----------------------
-# BACKEND_URL = "http://localhost:8000"  # Adjust this if hosted
+st.set_page_config(page_title="Skill Gap Analyzer")
 
-# ---------------------- UI ----------------------
-st.set_page_config(page_title="SkillGap Analyzer", layout="centered")
+# === File helper ===
+def get_backend_file_path(selected_role):
+    role_file_map = {
+        "AI Engineer": "ai-engineer.json",
+        "Backend Developer": "backend.json",
+        "Data Scientist": "ai-data-scientist.json",
+        "Data Analyst": "data-analyst.json"
+    }
+    role_file = role_file_map.get(selected_role)
+    if not role_file:
+        raise FileNotFoundError("❌ Role file mapping not found.")
+    
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    return os.path.join(project_root, "backend", "data", "roles", role_file)
 
-st.title("🎓 SkillGap Analyzer")
-st.subheader("Upload your resume and get a personalized skill roadmap")
+# === UI Tabs ===
+tabs = st.tabs(["📄 Skill Gap Analyzer", "🗺️ Role Roadmap"])
 
-# ---------------------- File Upload ----------------------
-uploaded_file = st.file_uploader("Upload Resume (PDF or DOCX)", type=["pdf", "docx"])
+# === Tab 1: Resume Analysis ===
+with tabs[0]:
+    st.header("📄 Upload Resume & Analyze Skills")
+    with st.sidebar:
+        st.link_button("DSA Roadmap", "https://www.geeksforgeeks.org/dsa-tutorial-learn-data-structures-and-algorithms/")
+        st.link_button("Want to challenge yourself with the 30 days of DSA!", "https://docs.google.com/spreadsheets/u/0/d/11tevcTIBQsIvRKIZLbSzCeN4mCO6wD4O5meyrAIfSXw/htmlview?pli=1")
+        st.write("Then check out this sheet which help you to cover most of the concepts that is needed for the problem solving skills")
+    selected_role = st.selectbox("Choose your target role", ["AI Engineer", "Backend Developer", "Data Scientist","Data Analyst"])
+    uploaded_file = st.file_uploader("Upload your resume (PDF or DOCX)", type=["pdf", "docx"])
 
-# ---------------------- Role Selection ----------------------
-roles = [
-    "data-analyst", 
-    "data-scientist", 
-    "game-developer", 
-    "blockchain", 
-    "cyber-security"
-]
-selected_role = st.selectbox("Choose your Target Role", roles)
+    if uploaded_file and selected_role:
+        with st.spinner("Parsing resume..."):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                tmp.write(uploaded_file.read())
+                tmp_path = tmp.name
 
-# ---------------------- Submit ----------------------
-if st.button("Analyze Resume") and uploaded_file:
-    with st.spinner("Analyzing your resume..."):
-        # Save file temporarily
-        temp_file_path = f"temp/{uploaded_file.name}"
-        os.makedirs("temp", exist_ok=True)
-        with open(temp_file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+            try:
+                resume_data = ResumeParser(tmp_path).get_extracted_data()
+                resume_skills = [skill.lower() for skill in resume_data.get("skills", [])]
+            except Exception as e:
+                st.error(f"❌ Resume parsing failed: {e}")
+                os.remove(tmp_path)
+                st.stop()
+            os.remove(tmp_path)
 
-        # Send to backend
-        files = {'file': open(temp_file_path, 'rb')}
-        response = requests.post(
-            f"{BACKEND_URL}/analyze?role={selected_role}",
-            files=files
-        )
+        with st.spinner("Loading roadmap..."):
+            try:
+                file_path = get_backend_file_path(selected_role)
+                with open(file_path, "r", encoding="utf-8") as f:
+                    roadmap_json = json.load(f)
+            except Exception as e:
+                st.error(f"❌ Roadmap loading failed: {e}")
+                st.stop()
 
-        if response.status_code == 200:
-            result = response.json()
+        roadmap_titles = [item.get("title", "").lower() for item in roadmap_json.values()]
+        matched = [skill for skill in roadmap_titles if skill in resume_skills]
+        missing = [skill for skill in roadmap_titles if skill not in resume_skills]
+        st.toast("Loading up")
+        st.success("✅ Analysis complete!")
 
-            st.success("✅ Analysis Complete!")
-            st.markdown(f"**Candidate Name**: {result['candidate_name']}")
-            st.markdown(f"**Email**: {result['email']}")
-            st.markdown(f"**Role Analyzed**: {result['role']}")
+        st.markdown("### ✅ Matched Skills")
+        st.write(matched or "No matches found.")
 
-            st.markdown("### 🧠 Extracted Skills")
-            st.code(", ".join(result["extracted_skills"]), language="text")
+        st.markdown("### ❌ Missing Skills")
+        st.write(missing or "You're all set!")
 
-            st.markdown("### 🧩 Missing Skills")
-            for skill in result["missing_skills"]:
-                st.markdown(f"- **{skill['skill']}** ({skill['level']}, {skill['estimated_time']})")
-                for link in skill["course_links"]:
-                    st.markdown(f"    - [📘 Resource]({link})")
+# === Tab 2: Roadmap Viewer ===
+with tabs[1]:
+    st.header("🗺️ View Role Roadmap")
 
-            st.markdown("### 🌱 Personalized Roadmap")
-            for step in result["personalized_roadmap"]:
-                st.markdown(f"**Week {step['week']}** → {step['skill']}")
-                st.markdown(f"[🔗 Course]({step['course']})")
+    selected_role = st.selectbox("Select a role to view its roadmap", ["AI Engineer", "Backend Developer", "Data Scientist","Data Analyst"], key="roadmap_role")
 
-            # Optional: Display as JSON
-            with st.expander("📦 View Full JSON Output"):
-                st.json(result)
-        else:
-            st.error("❌ Failed to analyze resume. Please check backend or try again.")
-else:
-    st.info("Upload a resume and choose a role to begin.")
+    try:
+        file_path = get_backend_file_path(selected_role)
+        with open(file_path, "r", encoding="utf-8") as f:
+            roadmap = json.load(f)
+    except Exception as e:
+        st.error(f"❌ Failed to load roadmap: {e}")
+        st.stop()
 
+    for key, node in roadmap.items():
+        st.markdown(f"### 🔹 {node['title']}")
+        st.markdown(f"**Description:** {node['description']}")
+        for link in node.get("links", []):
+            st.markdown(f"- [{link['title']}]({link['url']}) ({link['type']})")
